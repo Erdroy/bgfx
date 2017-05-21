@@ -1603,6 +1603,37 @@ namespace bgfx
 	///
 	/// @param[in] _width Width.
 	/// @param[in] _height Height.
+	/// @param[in] _mipCount The mip-map chain length (including default mip/0).
+	/// @param[in] _numLayers Number of layers in texture array. Must be 1 if caps
+	///   `BGFX_CAPS_TEXTURE_2D_ARRAY` flag is not set.
+	/// @param[in] _format Texture format. See: `TextureFormat::Enum`.
+	/// @param[in] _flags Default texture sampling mode is linear, and wrap mode
+	///   is repeat.
+	///   - `BGFX_TEXTURE_[U/V/W]_[MIRROR/CLAMP]` - Mirror or clamp to edge wrap
+	///     mode.
+	///   - `BGFX_TEXTURE_[MIN/MAG/MIP]_[POINT/ANISOTROPIC]` - Point or anisotropic
+	///     sampling.
+	///
+	/// @param[in] _mem Texture data. If `_mem` is non-NULL, created texture will be immutable. If
+	///   `_mem` is NULL content of the texture is uninitialized. When `_numLayers` is more than
+	///   1, expected memory layout is texture and all mips together for each array element.
+	///
+	/// @attention C99 equivalent is `bgfx_create_texture_2d`.
+	///
+	TextureHandle createTexture2D(
+		uint16_t _width
+		, uint16_t _height
+		, uint8_t _mipCount
+		, uint16_t _numLayers
+		, TextureFormat::Enum _format
+		, uint32_t _flags = BGFX_TEXTURE_NONE
+		, const Memory* _mem = NULL
+	);
+
+	/// Create 2D texture.
+	///
+	/// @param[in] _width Width.
+	/// @param[in] _height Height.
 	/// @param[in] _hasMips Indicates that texture contains full mip-map chain.
 	/// @param[in] _numLayers Number of layers in texture array. Must be 1 if caps
 	///   `BGFX_CAPS_TEXTURE_2D_ARRAY` flag is not set.

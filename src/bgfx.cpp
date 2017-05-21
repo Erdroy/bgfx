@@ -3193,7 +3193,7 @@ error:
 		_height = bx::uint16_max(1, _height);
 	}
 
-	static TextureHandle createTexture2D(BackbufferRatio::Enum _ratio, uint16_t _width, uint16_t _height, bool _hasMips, uint16_t _numLayers, TextureFormat::Enum _format, uint32_t _flags, const Memory* _mem)
+	static TextureHandle createTexture2D(BackbufferRatio::Enum _ratio, uint16_t _width, uint16_t _height, bool _hasMips, uint8_t _mipCount, uint16_t _numLayers, TextureFormat::Enum _format, uint32_t _flags, const Memory* _mem)
 	{
 		BGFX_CHECK_MAIN_THREAD();
 
@@ -3239,7 +3239,7 @@ error:
 		tc.m_height    = _height;
 		tc.m_depth     = 0;
 		tc.m_numLayers = _numLayers;
-		tc.m_numMips   = numMips;
+		tc.m_numMips   = _mipCount > 0 ? _mipCount : numMips;
 		tc.m_format    = _format;
 		tc.m_cubeMap   = false;
 		tc.m_mem       = _mem;
@@ -3248,16 +3248,22 @@ error:
 		return s_ctx->createTexture(mem, _flags, 0, NULL, _ratio);
 	}
 
+	TextureHandle createTexture2D(uint16_t _width, uint16_t _height, uint8_t _mipCount, uint16_t _numLayers, TextureFormat::Enum _format, uint32_t _flags, const Memory* _mem)
+	{
+		BX_CHECK(_width > 0 && _height > 0, "Invalid texture size (width %d, height %d).", _width, _height);
+		return createTexture2D(BackbufferRatio::Count, _width, _height, _mipCount > 0, _mipCount, _numLayers, _format, _flags, _mem);
+	}
+
 	TextureHandle createTexture2D(uint16_t _width, uint16_t _height, bool _hasMips, uint16_t _numLayers, TextureFormat::Enum _format, uint32_t _flags, const Memory* _mem)
 	{
 		BX_CHECK(_width > 0 && _height > 0, "Invalid texture size (width %d, height %d).", _width, _height);
-		return createTexture2D(BackbufferRatio::Count, _width, _height, _hasMips, _numLayers, _format, _flags, _mem);
+		return createTexture2D(BackbufferRatio::Count, _width, _height, _hasMips, 0u, _numLayers, _format, _flags, _mem);
 	}
 
 	TextureHandle createTexture2D(BackbufferRatio::Enum _ratio, bool _hasMips, uint16_t _numLayers, TextureFormat::Enum _format, uint32_t _flags)
 	{
 		BX_CHECK(_ratio < BackbufferRatio::Count, "Invalid back buffer ratio.");
-		return createTexture2D(_ratio, 0, 0, _hasMips, _numLayers, _format, _flags, NULL);
+		return createTexture2D(_ratio, 0, 0, _hasMips, 0u, _numLayers, _format, _flags, NULL);
 	}
 
 	TextureHandle createTexture3D(uint16_t _width, uint16_t _height, uint16_t _depth, bool _hasMips, TextureFormat::Enum _format, uint32_t _flags, const Memory* _mem)
