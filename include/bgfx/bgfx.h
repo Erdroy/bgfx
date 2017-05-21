@@ -1576,6 +1576,30 @@ namespace bgfx
 		, TextureFormat::Enum _format
 		);
 
+	/// Calculate amount of memory required for texture.
+	///
+	/// @param[out] _info Resulting texture info structure.
+	/// @param[in] _width Width.
+	/// @param[in] _height Height.
+	/// @param[in] _depth Depth dimension of volume texture.
+	/// @param[in] _cubeMap Indicates that texture contains cubemap.
+	/// @param[in] _numMips Number of mipmap levels.
+	/// @param[in] _numLayers Number of layers in texture array.
+	/// @param[in] _format Texture format. See: `TextureFormat::Enum`.
+	///
+	/// @attention C99 equivalent is `bgfx_calc_texture_size`.
+	///
+	void calcTextureSize(
+		TextureInfo& _info
+		, uint16_t _width
+		, uint16_t _height
+		, uint16_t _depth
+		, bool _cubeMap
+		, uint8_t _numMips
+		, uint16_t _numLayers
+		, TextureFormat::Enum _format
+	);
+
 	/// Create texture from memory buffer.
 	///
 	/// @param[in] _mem DDS, KTX or PVR texture data.

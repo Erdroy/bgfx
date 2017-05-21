@@ -3168,6 +3168,11 @@ error:
 		bimg::imageGetSize( (bimg::TextureInfo*)&_info, _width, _height, _depth, _cubeMap, _hasMips, _numLayers, bimg::TextureFormat::Enum(_format) );
 	}
 
+	void calcTextureSize(TextureInfo& _info, uint16_t _width, uint16_t _height, uint16_t _depth, bool _cubeMap, uint8_t _numMips, uint16_t _numLayers, TextureFormat::Enum _format)
+	{
+		bimg::imageGetSize((bimg::TextureInfo*)&_info, _width, _height, _depth, _cubeMap, _numMips, _numLayers, bimg::TextureFormat::Enum(_format));
+	}
+
 	TextureHandle createTexture(const Memory* _mem, uint32_t _flags, uint8_t _skip, TextureInfo* _info)
 	{
 		BGFX_CHECK_MAIN_THREAD();
@@ -3212,14 +3217,14 @@ error:
 			getTextureSizeFromRatio(_ratio, _width, _height);
 		}
 
-		const uint8_t numMips = calcNumMips(_hasMips, _width, _height);
+		const uint8_t numMips = _mipCount > 0 ? _mipCount : calcNumMips(_hasMips, _width, _height);
 		_numLayers = bx::uint16_max(_numLayers, 1);
 
 		if (BX_ENABLED(BGFX_CONFIG_DEBUG)
 		&&  NULL != _mem)
 		{
 			TextureInfo ti;
-			calcTextureSize(ti, _width, _height, 1, false, _hasMips, _numLayers, _format);
+			calcTextureSize(ti, _width, _height, 1, false, numMips, _numLayers, _format);
 			BX_CHECK(ti.storageSize == _mem->size
 				, "createTexture2D: Texture storage size doesn't match passed memory size (storage size: %d, memory size: %d)"
 				, ti.storageSize
@@ -3239,7 +3244,7 @@ error:
 		tc.m_height    = _height;
 		tc.m_depth     = 0;
 		tc.m_numLayers = _numLayers;
-		tc.m_numMips   = _mipCount > 0 ? _mipCount : numMips;
+		tc.m_numMips   = numMips;
 		tc.m_format    = _format;
 		tc.m_cubeMap   = false;
 		tc.m_mem       = _mem;
