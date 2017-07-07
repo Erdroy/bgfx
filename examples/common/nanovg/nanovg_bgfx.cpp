@@ -185,7 +185,7 @@ namespace
 
 		for (i = 0; i < gl->ntextures; i++)
 		{
-			if (gl->textures[i].id.idx == bgfx::invalidHandle)
+			if (gl->textures[i].id.idx == bgfx::kInvalidHandle)
 			{
 				tex = &gl->textures[i];
 				break;
@@ -240,7 +240,7 @@ namespace
 					bgfx::destroyTexture(gl->textures[ii].id);
 				}
 				bx::memSet(&gl->textures[ii], 0, sizeof(gl->textures[ii]) );
-				gl->textures[ii].id.idx = bgfx::invalidHandle;
+				gl->textures[ii].id.idx = bgfx::kInvalidHandle;
 				return 1;
 			}
 		}
@@ -280,7 +280,7 @@ namespace
 		}
 		else
 		{
-			gl->u_halfTexel.idx = bgfx::invalidHandle;
+			gl->u_halfTexel.idx = bgfx::kInvalidHandle;
 		}
 
 		s_nvgDecl
@@ -1093,13 +1093,8 @@ NVGcontext* nvgCreate(int edgeaa, unsigned char _viewId, bx::AllocatorI* _alloca
 {
 	if (NULL == _allocator)
 	{
-#if BX_CONFIG_ALLOCATOR_CRT
-		static bx::CrtAllocator allocator;
+		static bx::DefaultAllocator allocator;
 		_allocator = &allocator;
-#else
-		BX_CHECK(false, "No allocator has been passed to nvgCreate(). Either specify a bx::AllocatorI instance or enable BX_CONFIG_ALLOCATOR_CRT directive.");
-		return NULL;
-#endif // BX_CONFIG_ALLOCATOR_CRT
 	}
 
 	struct NVGparams params;
@@ -1191,11 +1186,15 @@ NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* ctx, int width, int height,
 NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* _ctx, int _width, int _height, int _imageFlags)
 {
 	BX_UNUSED(_imageFlags);
+	bgfx::TextureHandle textures[] =
+	{
+		bgfx::createTexture2D(_width, _height, false, 1, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_RT),
+		bgfx::createTexture2D(_width, _height, false, 1, bgfx::TextureFormat::D24S8, BGFX_TEXTURE_RT | BGFX_TEXTURE_RT_WRITE_ONLY)
+	};
 	bgfx::FrameBufferHandle fbh = bgfx::createFrameBuffer(
-		  _width
-		, _height
-		, bgfx::TextureFormat::RGBA8
-		, BGFX_TEXTURE_NONE
+		  BX_COUNTOF(textures)
+		, textures
+		, true
 		);
 
 	if (!bgfx::isValid(fbh) )
@@ -1205,10 +1204,25 @@ NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* _ctx, int _width, int _heig
 
 	struct NVGparams* params = nvgInternalParams(_ctx);
 	struct GLNVGcontext* gl = (struct GLNVGcontext*)params->userPtr;
+	struct GLNVGtexture* tex = glnvg__allocTexture(gl);
+
+	if (NULL == tex)
+	{
+		bgfx::destroyFrameBuffer(fbh);
+		return NULL;
+	}
+
+	tex->width  = _width;
+	tex->height = _height;
+	tex->type   = NVG_TEXTURE_RGBA;
+	tex->flags  = _imageFlags | NVG_IMAGE_PREMULTIPLIED;
+	tex->id     = bgfx::getTexture(fbh);
+
 	NVGLUframebuffer* framebuffer = BX_NEW(gl->m_allocator, NVGLUframebuffer);
 	framebuffer->ctx    = _ctx;
-	framebuffer->image  = bgfx::getTexture(fbh).idx;
+	framebuffer->image  = tex->id.idx;
 	framebuffer->handle = fbh;
+
 	return framebuffer;
 }
 
@@ -1218,7 +1232,7 @@ void nvgluBindFramebuffer(NVGLUframebuffer* framebuffer)
 	static uint8_t s_prevViewId;
 	if (framebuffer != NULL)
 	{
-		s_prevCtx = framebuffer->ctx;
+		s_prevCtx    = framebuffer->ctx;
 		s_prevViewId = nvgViewId(framebuffer->ctx);
 		nvgViewId(framebuffer->ctx, framebuffer->viewId);
 	}
@@ -1242,6 +1256,7 @@ void nvgluDeleteFramebuffer(NVGLUframebuffer* framebuffer)
 
 	struct NVGparams* params = nvgInternalParams(framebuffer->ctx);
 	struct GLNVGcontext* gl = (struct GLNVGcontext*)params->userPtr;
+	glnvg__deleteTexture(gl, framebuffer->image);
 	BX_DELETE(gl->m_allocator, framebuffer);
 }
 
@@ -1249,5 +1264,5 @@ void nvgluSetViewFramebuffer(uint8_t viewId, NVGLUframebuffer* framebuffer)
 {
 	framebuffer->viewId = viewId;
 	bgfx::setViewFrameBuffer(viewId, framebuffer->handle);
-	bgfx::setViewSeq(viewId, true);
+	bgfx::setViewMode(viewId, bgfx::ViewMode::Sequential);
 }
