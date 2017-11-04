@@ -4,10 +4,9 @@
  */
 
 #include <bx/bx.h>
-#include <bgfx/bgfx.h>
-#include <bx/string.h>
-#include <bx/crtimpl.h>
+#include <bx/file.h>
 #include <bx/sort.h>
+#include <bgfx/bgfx.h>
 
 #include <time.h>
 
@@ -19,18 +18,15 @@
 #include "cmd.h"
 #include "input.h"
 
-#define RMT_ENABLED ENTRY_CONFIG_PROFILER
-#include <remotery/lib/Remotery.h>
-
 extern "C" int32_t _main_(int32_t _argc, char** _argv);
 
 namespace entry
 {
 	static uint32_t s_debug = BGFX_DEBUG_NONE;
 	static uint32_t s_reset = BGFX_RESET_NONE;
+	static uint32_t s_width = ENTRY_DEFAULT_WIDTH;
+	static uint32_t s_height = ENTRY_DEFAULT_HEIGHT;
 	static bool s_exit = false;
-
-	static Remotery* s_rmt = NULL;
 
 	static bx::FileReaderI* s_fileReader = NULL;
 	static bx::FileWriterI* s_fileWriter = NULL;
@@ -40,21 +36,6 @@ namespace entry
 
 	typedef bx::StringT<&g_allocator> String;
 
-	void* rmtMalloc(void* /*_context*/, rmtU32 _size)
-	{
-		return BX_ALLOC(g_allocator, _size);
-	}
-
-	void* rmtRealloc(void* /*_context*/, void* _ptr, rmtU32 _size)
-	{
-		return BX_REALLOC(g_allocator, _ptr, _size);
-	}
-
-	void rmtFree(void* /*_context*/, void* _ptr)
-	{
-		BX_FREE(g_allocator, _ptr);
-	}
-
 	static String s_currentDir;
 
 	class FileReader : public bx::FileReader
@@ -62,10 +43,10 @@ namespace entry
 		typedef bx::FileReader super;
 
 	public:
-		virtual bool open(const char* _filePath, bx::Error* _err) BX_OVERRIDE
+		virtual bool open(const bx::FilePath& _filePath, bx::Error* _err) override
 		{
 			String filePath(s_currentDir);
-			filePath.append(_filePath);
+			filePath.append(_filePath.get() );
 			return super::open(filePath.getPtr(), _err);
 		}
 	};
@@ -75,10 +56,10 @@ namespace entry
 		typedef bx::FileWriter super;
 
 	public:
-		virtual bool open(const char* _filePath, bool _append, bx::Error* _err) BX_OVERRIDE
+		virtual bool open(const bx::FilePath& _filePath, bool _append, bx::Error* _err) override
 		{
 			String filePath(s_currentDir);
-			filePath.append(_filePath);
+			filePath.append(_filePath.get() );
 			return super::open(filePath.getPtr(), _append, _err);
 		}
 	};
@@ -304,7 +285,9 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 			else if (setOrToggle(s_debug, "stats",     BGFX_DEBUG_STATS,     1, _argc, _argv)
 				 ||  setOrToggle(s_debug, "ifh",       BGFX_DEBUG_IFH,       1, _argc, _argv)
 				 ||  setOrToggle(s_debug, "text",      BGFX_DEBUG_TEXT,      1, _argc, _argv)
-				 ||  setOrToggle(s_debug, "wireframe", BGFX_DEBUG_WIREFRAME, 1, _argc, _argv) )
+				 ||  setOrToggle(s_debug, "wireframe", BGFX_DEBUG_WIREFRAME, 1, _argc, _argv)
+				 ||  setOrToggle(s_debug, "profiler",  BGFX_DEBUG_PROFILER,  1, _argc, _argv)
+				    )
 			{
 				bgfx::setDebug(s_debug);
 				return bx::kExitSuccess;
@@ -361,6 +344,7 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		{ entry::Key::F4,           entry::Modifier::None,      1, NULL, "graphics hmd"                      },
 		{ entry::Key::F4,           entry::Modifier::LeftShift, 1, NULL, "graphics hmdrecenter"              },
 		{ entry::Key::F4,           entry::Modifier::LeftCtrl,  1, NULL, "graphics hmddbg"                   },
+		{ entry::Key::F6,           entry::Modifier::None,      1, NULL, "graphics profiler"                 },
 		{ entry::Key::F7,           entry::Modifier::None,      1, NULL, "graphics vsync"                    },
 		{ entry::Key::F8,           entry::Modifier::None,      1, NULL, "graphics msaa"                     },
 		{ entry::Key::F9,           entry::Modifier::None,      1, NULL, "graphics flush"                    },
@@ -461,6 +445,30 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		s_numApps++;
 	}
 
+	AppI::~AppI()
+	{
+		for (AppI* prev = NULL, *app = s_apps, *next = app->getNext()
+			; NULL != app
+			; prev = app, app = next, next = app->getNext() )
+		{
+			if (app == this)
+			{
+				if (NULL != prev)
+				{
+					prev->m_next = next;
+				}
+				else
+				{
+					s_apps = next;
+				}
+
+				--s_numApps;
+
+				break;
+			}
+		}
+	}
+
 	const char* AppI::getName() const
 	{
 		return m_name;
@@ -488,11 +496,11 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 
 	int runApp(AppI* _app, int _argc, const char* const* _argv)
 	{
-		_app->init(_argc, _argv, ENTRY_DEFAULT_WIDTH, ENTRY_DEFAULT_HEIGHT);
+		_app->init(_argc, _argv, s_width, s_height);
 		bgfx::frame();
 
 		WindowHandle defaultWindow = { 0 };
-		setWindowSize(defaultWindow, ENTRY_DEFAULT_WIDTH, ENTRY_DEFAULT_HEIGHT);
+		setWindowSize(defaultWindow, s_width, s_height);
 
 #if BX_PLATFORM_EMSCRIPTEN
 		s_app = _app;
@@ -549,29 +557,6 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 	{
 		//DBG(BX_COMPILER_NAME " / " BX_CPU_NAME " / " BX_ARCH_NAME " / " BX_PLATFORM_NAME);
 
-		if (BX_ENABLED(ENTRY_CONFIG_PROFILER) )
-		{
-			rmtSettings* settings = rmt_Settings();
-			BX_WARN(NULL != settings, "Remotery is not enabled.");
-			if (NULL != settings)
-			{
-				settings->malloc  = rmtMalloc;
-				settings->realloc = rmtRealloc;
-				settings->free    = rmtFree;
-
-				rmtError err = rmt_CreateGlobalInstance(&s_rmt);
-				BX_WARN(RMT_ERROR_NONE != err, "Remotery failed to create global instance.");
-				if (RMT_ERROR_NONE == err)
-				{
-					rmt_SetCurrentThreadName("Main");
-				}
-				else
-				{
-					s_rmt = NULL;
-				}
-			}
-		}
-
 		s_fileReader = BX_NEW(g_allocator, FileReader);
 		s_fileWriter = BX_NEW(g_allocator, FileWriter);
 
@@ -585,7 +570,12 @@ BX_PRAGMA_DIAGNOSTIC_POP();
 		inputAddBindings("bindings", s_bindings);
 
 		entry::WindowHandle defaultWindow = { 0 };
-		entry::setWindowTitle(defaultWindow, bx::baseName(_argv[0]) );
+
+		bx::FilePath fp(_argv[0]);
+		char title[bx::kMaxFilePath];
+		bx::strCopy(title, BX_COUNTOF(title), fp.getBaseName() );
+
+		entry::setWindowTitle(defaultWindow, title);
 		setWindowSize(defaultWindow, ENTRY_DEFAULT_WIDTH, ENTRY_DEFAULT_HEIGHT);
 
 		sortApps();
@@ -644,12 +634,6 @@ restart:
 
 		BX_DELETE(g_allocator, s_fileWriter);
 		s_fileWriter = NULL;
-
-		if (BX_ENABLED(ENTRY_CONFIG_PROFILER)
-		&&  NULL != s_rmt)
-		{
-			rmt_DestroyGlobalInstance(s_rmt);
-		}
 
 		return result;
 	}
@@ -765,6 +749,9 @@ restart:
 		}
 
 		_debug = s_debug;
+
+		s_width = _width;
+		s_height = _height;
 
 		return s_exit;
 	}

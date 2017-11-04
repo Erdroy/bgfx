@@ -226,6 +226,8 @@ INSTANTIATE_TEST_CASE_P(
         "spv.aggOps.frag",
         "spv.always-discard.frag",
         "spv.always-discard2.frag",
+        "spv.arbPostDepthCoverage.frag",
+        "spv.arbPostDepthCoverage_Error.frag",
         "spv.bitCast.frag",
         "spv.bool.vert",
         "spv.boolInBlock.frag",
@@ -242,6 +244,8 @@ INSTANTIATE_TEST_CASE_P(
         "spv.drawParams.vert",
         "spv.doWhileLoop.frag",
         "spv.earlyReturnDiscard.frag",
+        "spv.extPostDepthCoverage.frag",
+        "spv.extPostDepthCoverage_Error.frag",
         "spv.flowControl.frag",
         "spv.forLoop.frag",
         "spv.forwardFun.frag",
@@ -271,7 +275,9 @@ INSTANTIATE_TEST_CASE_P(
         "spv.noWorkgroup.comp",
         "spv.offsets.frag",
         "spv.Operations.frag",
+        "spv.paramMemory.frag",
         "spv.precision.frag",
+        "spv.precisionNonESSamp.frag",
         "spv.prepost.frag",
         "spv.qualifiers.vert",
         "spv.sampleMaskOverrideCoverage.frag",
@@ -329,6 +335,7 @@ INSTANTIATE_TEST_CASE_P(
         { "spv.register.autoassign.frag", "main_ep", 5, 10, 0, 20, 30, true, false },
         { "spv.register.noautoassign.frag", "main_ep", 5, 10, 0, 15, 30, false, false },
         { "spv.register.autoassign-2.frag", "main", 5, 10, 0, 15, 30, true, true },
+        { "spv.register.subpass.frag", "main", 0, 20, 0, 0, 0, true, true },
         { "spv.buffer.autoassign.frag", "main", 5, 10, 0, 15, 30, true, true },
         { "spv.ssbo.autoassign.frag", "main", 5, 10, 0, 15, 30, true, true },
         { "spv.ssboAlias.frag", "main", 0, 0, 0, 0, 83, true, false },
@@ -355,6 +362,9 @@ INSTANTIATE_TEST_CASE_P(
 INSTANTIATE_TEST_CASE_P(
     Glsl, CompileOpenGLToSpirvTest,
     ::testing::ValuesIn(std::vector<std::string>({
+        "spv.460.frag",
+        "spv.460.vert",
+        "spv.460.comp",
         "spv.atomic.comp",
         "spv.glFragColor.frag",
         "spv.specConst.vert",
@@ -398,9 +408,11 @@ INSTANTIATE_TEST_CASE_P(
     Glsl, CompileVulkanToSpirvTestAMD,
     ::testing::ValuesIn(std::vector<std::string>({
         "spv.float16.frag",
+        "spv.imageLoadStoreLod.frag",
         "spv.int16.frag",
         "spv.shaderBallotAMD.comp",
-        "spv.textureGatherBiasLod.frag"
+        "spv.shaderFragMaskAMD.frag",
+        "spv.textureGatherBiasLod.frag",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -418,6 +430,7 @@ INSTANTIATE_TEST_CASE_P(
     "spv.stereoViewRendering.tesc",
     "spv.multiviewPerViewAttributes.vert",
     "spv.multiviewPerViewAttributes.tesc",
+    "spv.atomicInt64.comp",
 })),
 FileNameAsCustomTestSuffix
 );

@@ -10,7 +10,7 @@
 #include "bounds.h"
 #include <bx/allocator.h>
 #include <bx/debug.h>
-#include <bx/fpumath.h>
+#include <bx/math.h>
 
 namespace
 {
@@ -67,7 +67,7 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) BX_OVERRIDE
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
 	{
 		Args args(_argc, _argv);
 
@@ -135,7 +135,7 @@ public:
 		cameraSetVerticalAngle(-bx::kPi/4.0f);
 	}
 
-	virtual int shutdown() BX_OVERRIDE
+	virtual int shutdown() override
 	{
 		// Cleanup.
 		cameraDestroy();
@@ -143,33 +143,33 @@ public:
 
 		if (bgfx::isValid(m_ibh) )
 		{
-			bgfx::destroyIndexBuffer(m_ibh);
+			bgfx::destroy(m_ibh);
 		}
 
 		if (bgfx::isValid(m_vbh) )
 		{
-			bgfx::destroyVertexBuffer(m_vbh);
+			bgfx::destroy(m_vbh);
 		}
 
 		if (bgfx::isValid(m_dibh) )
 		{
-			bgfx::destroyDynamicIndexBuffer(m_dibh);
+			bgfx::destroy(m_dibh);
 		}
 
 		if (bgfx::isValid(m_dvbh) )
 		{
-			bgfx::destroyDynamicVertexBuffer(m_dvbh);
+			bgfx::destroy(m_dvbh);
 		}
 
-		bgfx::destroyUniform(s_heightTexture);
+		bgfx::destroy(s_heightTexture);
 
 		if (bgfx::isValid(m_heightTexture) )
 		{
-			bgfx::destroyTexture(m_heightTexture);
+			bgfx::destroy(m_heightTexture);
 		}
 
-		bgfx::destroyProgram(m_terrainProgram);
-		bgfx::destroyProgram(m_terrainHeightTextureProgram);
+		bgfx::destroy(m_terrainProgram);
+		bgfx::destroy(m_terrainHeightTextureProgram);
 
 		/// When data is passed to bgfx via makeRef we need to make
 		/// sure library is done with it before freeing memory blocks.
@@ -197,8 +197,8 @@ public:
 				vert->m_x = (float)x;
 				vert->m_y = m_terrain.m_heightMap[(y * s_terrainSize) + x];
 				vert->m_z = (float)y;
-				vert->m_u = (float)x / (float)s_terrainSize;
-				vert->m_v = (float)y / (float)s_terrainSize;
+				vert->m_u = (x + 0.5f) / s_terrainSize;
+				vert->m_v = (y + 0.5f) / s_terrainSize;
 
 				m_terrain.m_vertexCount++;
 			}
@@ -233,14 +233,14 @@ public:
 
 			if (bgfx::isValid(m_vbh) )
 			{
-				bgfx::destroyVertexBuffer(m_vbh);
+				bgfx::destroy(m_vbh);
 			}
 
 			mem = bgfx::makeRef(&m_terrain.m_vertices[0], sizeof(PosTexCoord0Vertex) * m_terrain.m_vertexCount);
 			m_vbh = bgfx::createVertexBuffer(mem, PosTexCoord0Vertex::ms_decl);
 			if (bgfx::isValid(m_ibh) )
 			{
-				bgfx::destroyIndexBuffer(m_ibh);
+				bgfx::destroy(m_ibh);
 			}
 
 			mem = bgfx::makeRef(&m_terrain.m_indices[0], sizeof(uint16_t) * m_terrain.m_indexCount);
@@ -298,14 +298,14 @@ public:
 			{
 				int32_t brush_x = _x + area_x;
 				if (brush_x < 0
-				||  brush_x > (int32_t)s_terrainSize)
+				||  brush_x >= (int32_t)s_terrainSize)
 				{
 					continue;
 				}
 
 				int32_t brush_y = _y + area_y;
 				if (brush_y < 0
-				||  brush_y > (int32_t)s_terrainSize)
+				||  brush_y >= (int32_t)s_terrainSize)
 				{
 					continue;
 				}
@@ -365,9 +365,9 @@ public:
 			bx::vec3Add(pos, pos, ray_dir);
 
 			if (pos[0] < 0
-			||  pos[0] > s_terrainSize
+			||  pos[0] >= s_terrainSize
 			||  pos[2] < 0
-			||  pos[2] > s_terrainSize)
+			||  pos[2] >= s_terrainSize)
 			{
 				continue;
 			}
@@ -381,7 +381,7 @@ public:
 		}
 	}
 
-	bool update() BX_OVERRIDE
+	bool update() override
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{

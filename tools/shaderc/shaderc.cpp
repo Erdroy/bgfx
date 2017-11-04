@@ -5,6 +5,7 @@
 
 #include "shaderc.h"
 #include <bx/commandline.h>
+#include <bx/filepath.h>
 
 #define MAX_TAGS 256
 extern "C"
@@ -17,7 +18,7 @@ extern "C"
 #define BGFX_CHUNK_MAGIC_VSH BX_MAKEFOURCC('V', 'S', 'H', 0x5)
 
 #define BGFX_SHADERC_VERSION_MAJOR 1
-#define BGFX_SHADERC_VERSION_MINOR 4
+#define BGFX_SHADERC_VERSION_MINOR 5
 
 namespace bgfx
 {
@@ -223,13 +224,13 @@ namespace bgfx
 		{
 		}
 
-		virtual void close() BX_OVERRIDE
+		virtual void close() override
 		{
 			generate();
 			return bx::FileWriter::close();
 		}
 
-		virtual int32_t write(const void* _data, int32_t _size, bx::Error*) BX_OVERRIDE
+		virtual int32_t write(const void* _data, int32_t _size, bx::Error*) override
 		{
 			const char* data = (const char*)_data;
 			m_buffer.insert(m_buffer.end(), data, data+_size);
@@ -392,7 +393,10 @@ namespace bgfx
 		replace[len] = '\0';
 
 		BX_CHECK(len >= bx::strLen(_replace), "");
-		for (const char* ptr = bx::strFind(_str, _find); NULL != ptr; ptr = bx::strFind(ptr + len, _find) )
+		for (const char* ptr = bx::strFind(_str, _find)
+			; NULL != ptr
+			; ptr = bx::strFind(ptr + len, _find)
+			)
 		{
 			bx::memCopy(const_cast<char*>(ptr), replace, len);
 		}
@@ -704,6 +708,15 @@ namespace bgfx
 		strReplace(_data, find, "bgfx_VoidFrag");
 	}
 
+	const char* baseName(const char* _filePath)
+	{
+		bx::FilePath fp(_filePath);
+		char tmp[bx::kMaxFilePath];
+		bx::strCopy(tmp, BX_COUNTOF(tmp), fp.getFileName() );
+		const char* base = bx::strFind(_filePath, tmp);
+		return base;
+	}
+
 	// c - compute
 	// d - domain
 	// f - fragment
@@ -888,7 +901,7 @@ namespace bgfx
 			bin2c = cmdLine.findOption("bin2c");
 			if (NULL == bin2c)
 			{
-				bin2c = bx::baseName(outFilePath);
+				bin2c = baseName(outFilePath);
 				uint32_t len = (uint32_t)bx::strLen(bin2c);
 				char* temp = (char*)alloca(len+1);
 				for (char *out = temp; *bin2c != '\0';)
@@ -927,7 +940,7 @@ namespace bgfx
 
 		std::string dir;
 		{
-			const char* base = bx::baseName(filePath);
+			const char* base = baseName(filePath);
 
 			if (base != filePath)
 			{
@@ -2033,10 +2046,20 @@ namespace bgfx
 												);
 										}
 
-										bx::stringPrintf(code
-											, "#define bgfxShadow2D shadow2D\n"
-											  "#define bgfxShadow2DProj shadow2DProj\n"
-											);
+										if (need130)
+										{
+											bx::stringPrintf(code
+												, "#define bgfxShadow2D(_sampler, _coord)     vec4_splat(texture(_sampler, _coord))\n"
+												  "#define bgfxShadow2DProj(_sampler, _coord) vec4_splat(textureProj(_sampler, _coord))\n"
+												);
+										}
+										else
+										{
+											bx::stringPrintf(code
+												, "#define bgfxShadow2D     shadow2D\n"
+												  "#define bgfxShadow2DProj shadow2DProj\n"
+												);
+										}
 									}
 									else
 									{

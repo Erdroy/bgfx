@@ -87,11 +87,12 @@ namespace glslang {
         bool acceptAnnotations(TQualifier&);
         bool acceptSamplerType(TType&);
         bool acceptTextureType(TType&);
+        bool acceptSubpassInputType(TType&);
         bool acceptStructBufferType(TType&);
         bool acceptConstantBufferType(TType&);
         bool acceptStruct(TType&, TIntermNode*& nodeList);
         bool acceptStructDeclarationList(TTypeList*&, TIntermNode*& nodeList, TVector<TFunctionDeclarator>&);
-        bool acceptMemberFunctionDefinition(TIntermNode*& nodeList, const TType&, const TString& memberName,
+        bool acceptMemberFunctionDefinition(TIntermNode*& nodeList, const TType&, TString& memberName,
                                             TFunctionDeclarator&);
         bool acceptFunctionParameters(TFunction&);
         bool acceptParameterDeclaration(TFunction&);
@@ -116,8 +117,8 @@ namespace glslang {
         bool acceptStatement(TIntermNode*&);
         bool acceptNestedStatement(TIntermNode*&);
         void acceptAttributes(TAttributeMap&);
-        bool acceptSelectionStatement(TIntermNode*&);
-        bool acceptSwitchStatement(TIntermNode*&);
+        bool acceptSelectionStatement(TIntermNode*&, const TAttributeMap&);
+        bool acceptSwitchStatement(TIntermNode*&, const TAttributeMap&);
         bool acceptIterationStatement(TIntermNode*&, const TAttributeMap&);
         bool acceptJumpStatement(TIntermNode*&);
         bool acceptCaseLabel(TIntermNode*&);

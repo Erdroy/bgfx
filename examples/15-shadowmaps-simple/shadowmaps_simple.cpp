@@ -12,7 +12,7 @@
 #include <bgfx/bgfx.h>
 #include <bx/timer.h>
 #include <bx/readerwriter.h>
-#include <bx/fpumath.h>
+#include <bx/math.h>
 #include "entry/entry.h"
 #include "bgfx_utils.h"
 #include "imgui/imgui.h"
@@ -66,7 +66,7 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) BX_OVERRIDE
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
 	{
 		Args args(_argc, _argv);
 
@@ -82,7 +82,7 @@ public:
 		bgfx::setDebug(m_debug);
 
 		// Uniforms.
-		u_shadowMap = bgfx::createUniform("u_shadowMap", bgfx::UniformType::Int1);
+		s_shadowMap = bgfx::createUniform("s_shadowMap", bgfx::UniformType::Int1);
 		u_lightPos  = bgfx::createUniform("u_lightPos",  bgfx::UniformType::Vec4);
 		u_lightMtx  = bgfx::createUniform("u_lightMtx",  bgfx::UniformType::Mat4);
 
@@ -204,7 +204,7 @@ public:
 		m_state[1]->m_numTextures = 1;
 		m_state[1]->m_textures[0].m_flags = UINT32_MAX;
 		m_state[1]->m_textures[0].m_stage = 0;
-		m_state[1]->m_textures[0].m_sampler = u_shadowMap;
+		m_state[1]->m_textures[0].m_sampler = s_shadowMap;
 		m_state[1]->m_textures[0].m_texture = shadowMapTexture;
 
 		// Set view and projection matrices.
@@ -221,7 +221,7 @@ public:
 		imguiCreate();
 	}
 
-	virtual int shutdown() BX_OVERRIDE
+	virtual int shutdown() override
 	{
 		imguiDestroy();
 
@@ -232,18 +232,18 @@ public:
 		meshStateDestroy(m_state[0]);
 		meshStateDestroy(m_state[1]);
 
-		bgfx::destroyVertexBuffer(m_vbh);
-		bgfx::destroyIndexBuffer(m_ibh);
+		bgfx::destroy(m_vbh);
+		bgfx::destroy(m_ibh);
 
-		bgfx::destroyProgram(m_progShadow);
-		bgfx::destroyProgram(m_progMesh);
+		bgfx::destroy(m_progShadow);
+		bgfx::destroy(m_progMesh);
 
-		bgfx::destroyFrameBuffer(m_shadowMapFB);
+		bgfx::destroy(m_shadowMapFB);
 
-		bgfx::destroyUniform(u_shadowMap);
-		bgfx::destroyUniform(u_lightPos);
-		bgfx::destroyUniform(u_lightMtx);
-		bgfx::destroyUniform(u_depthScaleOffset);
+		bgfx::destroy(s_shadowMap);
+		bgfx::destroy(u_lightPos);
+		bgfx::destroy(u_lightMtx);
+		bgfx::destroy(u_depthScaleOffset);
 
 		// Shutdown bgfx.
 		bgfx::shutdown();
@@ -251,7 +251,7 @@ public:
 		return 0;
 	}
 
-	bool update() BX_OVERRIDE
+	bool update() override
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
@@ -421,7 +421,7 @@ public:
 	uint32_t m_debug;
 	uint32_t m_reset;
 
-	bgfx::UniformHandle u_shadowMap;
+	bgfx::UniformHandle s_shadowMap;
 	bgfx::UniformHandle u_lightPos;
 	bgfx::UniformHandle u_lightMtx;
 

@@ -519,7 +519,7 @@ namespace bgfx { namespace spirv
 
 	struct DebugOutputWriter : public bx::WriterI
 	{
-		virtual int32_t write(const void* _data, int32_t _size, bx::Error*) BX_OVERRIDE
+		virtual int32_t write(const void* _data, int32_t _size, bx::Error*) override
 		{
 			char* out = (char*)alloca(_size + 1);
 			bx::memCopy(out, _data, _size);
@@ -545,7 +545,7 @@ namespace bgfx { namespace spirv
 //		fprintf(stderr, "%s\n", _message);
 //	}
 
-	static bool compile(bx::CommandLine& _cmdLine, uint32_t _version, const std::string& _code, bx::WriterI* _writer)
+	static bool compile(const bx::CommandLine& _cmdLine, uint32_t _version, const std::string& _code, bx::WriterI* _writer)
 	{
 		BX_UNUSED(_cmdLine, _version, _code, _writer);
 
@@ -767,7 +767,7 @@ namespace bgfx { namespace spirv
 
 } // namespace spirv
 
-	bool compileSPIRVShader(bx::CommandLine& _cmdLine, uint32_t _version, const std::string& _code, bx::WriterI* _writer)
+	bool compileSPIRVShader(const bx::CommandLine& _cmdLine, uint32_t _version, const std::string& _code, bx::WriterI* _writer)
 	{
 		return spirv::compile(_cmdLine, _version, _code, _writer);
 	}

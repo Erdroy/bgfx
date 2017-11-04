@@ -13,7 +13,7 @@ namespace stl = tinystl;
 #include <bgfx/bgfx.h>
 #include <bx/commandline.h>
 #include <bx/endian.h>
-#include <bx/fpumath.h>
+#include <bx/math.h>
 #include <bx/readerwriter.h>
 #include <bx/string.h>
 #include "entry/entry.h"
@@ -123,7 +123,10 @@ static bgfx::ShaderHandle loadShader(bx::FileReaderI* _reader, const char* _name
 	bx::strCat(filePath, BX_COUNTOF(filePath), _name);
 	bx::strCat(filePath, BX_COUNTOF(filePath), ".bin");
 
-	return bgfx::createShader(loadMem(_reader, filePath) );
+	bgfx::ShaderHandle handle = bgfx::createShader(loadMem(_reader, filePath) );
+	bgfx::setName(handle, filePath);
+
+	return handle;
 }
 
 bgfx::ShaderHandle loadShader(const char* _name)
@@ -155,7 +158,7 @@ static void imageReleaseCb(void* _ptr, void* _userData)
 	bimg::imageFree(imageContainer);
 }
 
-bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const char* _filePath, uint32_t _flags, uint8_t _skip, bgfx::TextureInfo* _info)
+bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const char* _filePath, uint32_t _flags, uint8_t _skip, bgfx::TextureInfo* _info, bimg::Orientation::Enum* _orientation)
 {
 	BX_UNUSED(_skip);
 	bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
@@ -168,6 +171,11 @@ bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const char* _filePath,
 
 		if (NULL != imageContainer)
 		{
+			if (NULL != _orientation)
+			{
+				*_orientation = imageContainer->m_orientation;
+			}
+
 			const bgfx::Memory* mem = bgfx::makeRef(
 					  imageContainer->m_data
 					, imageContainer->m_size
@@ -212,6 +220,8 @@ bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const char* _filePath,
 					);
 			}
 
+			bgfx::setName(handle, _filePath);
+
 			if (NULL != _info)
 			{
 				bgfx::calcTextureSize(
@@ -231,9 +241,9 @@ bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const char* _filePath,
 	return handle;
 }
 
-bgfx::TextureHandle loadTexture(const char* _name, uint32_t _flags, uint8_t _skip, bgfx::TextureInfo* _info)
+bgfx::TextureHandle loadTexture(const char* _name, uint32_t _flags, uint8_t _skip, bgfx::TextureInfo* _info, bimg::Orientation::Enum* _orientation)
 {
-	return loadTexture(entry::getFileReader(), _name, _flags, _skip, _info);
+	return loadTexture(entry::getFileReader(), _name, _flags, _skip, _info, _orientation);
 }
 
 bimg::ImageContainer* imageLoad(const char* _filePath, bgfx::TextureFormat::Enum _dstFormat)
@@ -527,11 +537,11 @@ struct Mesh
 		for (GroupArray::const_iterator it = m_groups.begin(), itEnd = m_groups.end(); it != itEnd; ++it)
 		{
 			const Group& group = *it;
-			bgfx::destroyVertexBuffer(group.m_vbh);
+			bgfx::destroy(group.m_vbh);
 
 			if (bgfx::isValid(group.m_ibh) )
 			{
-				bgfx::destroyIndexBuffer(group.m_ibh);
+				bgfx::destroy(group.m_ibh);
 			}
 		}
 		m_groups.clear();

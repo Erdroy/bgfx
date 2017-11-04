@@ -67,7 +67,7 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) BX_OVERRIDE
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
 	{
 		Args args(_argc, _argv);
 
@@ -112,14 +112,14 @@ public:
 		imguiCreate();
 	}
 
-	int shutdown() BX_OVERRIDE
+	int shutdown() override
 	{
 		imguiDestroy();
 
 		// Cleanup.
-		bgfx::destroyIndexBuffer(m_ibh);
-		bgfx::destroyVertexBuffer(m_vbh);
-		bgfx::destroyProgram(m_program);
+		bgfx::destroy(m_ibh);
+		bgfx::destroy(m_vbh);
+		bgfx::destroy(m_program);
 
 		// Shutdown bgfx.
 		bgfx::shutdown();
@@ -127,7 +127,7 @@ public:
 		return 0;
 	}
 
-	bool update() BX_OVERRIDE
+	bool update() override
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
@@ -197,16 +197,22 @@ public:
 					bgfx::setViewRect(0, 0, 0, uint16_t(m_width), uint16_t(m_height) );
 				}
 
+				// 80 bytes stride = 64 bytes for 4x4 matrix + 16 bytes for RGBA color.
 				const uint16_t instanceStride = 80;
-				const bgfx::InstanceDataBuffer* idb = bgfx::allocInstanceDataBuffer(121, instanceStride);
-				if (NULL != idb)
+				// 11x11 cubes
+				const uint32_t numInstances   = 121;
+
+				if (numInstances == bgfx::getAvailInstanceDataBuffer(numInstances, instanceStride) )
 				{
-					uint8_t* data = idb->data;
+					bgfx::InstanceDataBuffer idb;
+					bgfx::allocInstanceDataBuffer(&idb, numInstances, instanceStride);
+
+					uint8_t* data = idb.data;
 
 					// Write instance data for 11x11 cubes.
-					for (uint32_t yy = 0, numInstances = 0; yy < 11 && numInstances < idb->num; ++yy)
+					for (uint32_t yy = 0; yy < 11; ++yy)
 					{
-						for (uint32_t xx = 0; xx < 11 && numInstances < idb->num; ++xx, ++numInstances)
+						for (uint32_t xx = 0; xx < 11; ++xx)
 						{
 							float* mtx = (float*)data;
 							bx::mtxRotateXY(mtx, time + xx*0.21f, time + yy*0.37f);
@@ -229,7 +235,7 @@ public:
 					bgfx::setIndexBuffer(m_ibh);
 
 					// Set instance data buffer.
-					bgfx::setInstanceDataBuffer(idb);
+					bgfx::setInstanceDataBuffer(&idb);
 
 					// Set render states.
 					bgfx::setState(BGFX_STATE_DEFAULT);

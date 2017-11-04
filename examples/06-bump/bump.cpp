@@ -90,7 +90,7 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) BX_OVERRIDE
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
 	{
 		Args args(_argc, _argv);
 
@@ -158,20 +158,20 @@ public:
 		imguiCreate();
 	}
 
-	virtual int shutdown() BX_OVERRIDE
+	virtual int shutdown() override
 	{
 		imguiDestroy();
 
 		// Cleanup.
-		bgfx::destroyIndexBuffer(m_ibh);
-		bgfx::destroyVertexBuffer(m_vbh);
-		bgfx::destroyProgram(m_program);
-		bgfx::destroyTexture(m_textureColor);
-		bgfx::destroyTexture(m_textureNormal);
-		bgfx::destroyUniform(s_texColor);
-		bgfx::destroyUniform(s_texNormal);
-		bgfx::destroyUniform(u_lightPosRadius);
-		bgfx::destroyUniform(u_lightRgbInnerR);
+		bgfx::destroy(m_ibh);
+		bgfx::destroy(m_vbh);
+		bgfx::destroy(m_program);
+		bgfx::destroy(m_textureColor);
+		bgfx::destroy(m_textureNormal);
+		bgfx::destroy(s_texColor);
+		bgfx::destroy(s_texNormal);
+		bgfx::destroy(u_lightPosRadius);
+		bgfx::destroy(u_lightRgbInnerR);
 
 		// Shutdown bgfx.
 		bgfx::shutdown();
@@ -179,7 +179,7 @@ public:
 		return 0;
 	}
 
-	bool update() BX_OVERRIDE
+	bool update() override
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
@@ -258,17 +258,19 @@ public:
 			bgfx::setUniform(u_lightRgbInnerR, lightRgbInnerR, m_numLights);
 
 			const uint16_t instanceStride = 64;
-			const uint16_t numInstances = 3;
+			const uint16_t numInstances   = 3;
 
 			if (m_instancingSupported)
 			{
 				// Write instance data for 3x3 cubes.
 				for (uint32_t yy = 0; yy < 3; ++yy)
 				{
-					const bgfx::InstanceDataBuffer* idb = bgfx::allocInstanceDataBuffer(numInstances, instanceStride);
-					if (NULL != idb)
+					if (numInstances == bgfx::getAvailInstanceDataBuffer(numInstances, instanceStride) )
 					{
-						uint8_t* data = idb->data;
+						bgfx::InstanceDataBuffer idb;
+						bgfx::allocInstanceDataBuffer(&idb, numInstances, instanceStride);
+
+						uint8_t* data = idb.data;
 
 						for (uint32_t xx = 0; xx < 3; ++xx)
 						{
@@ -282,7 +284,7 @@ public:
 						}
 
 						// Set instance data buffer.
-						bgfx::setInstanceDataBuffer(idb, numInstances);
+						bgfx::setInstanceDataBuffer(&idb, numInstances);
 
 						// Set vertex and index buffer.
 						bgfx::setVertexBuffer(0, m_vbh);

@@ -38,6 +38,8 @@ static const char* s_directionName[] =
 static const char* s_easeFuncName[] =
 {
 	"Linear",
+	"Step",
+	"SmoothStep",
 	"InQuad",
 	"OutQuad",
 	"InOutQuad",
@@ -235,7 +237,7 @@ public:
 	{
 	}
 
-	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) BX_OVERRIDE
+	void init(int32_t _argc, const char* const* _argv, uint32_t _width, uint32_t _height) override
 	{
 		Args args(_argc, _argv);
 
@@ -279,6 +281,7 @@ public:
 		{
 			m_emitter[ii].create();
 			m_emitter[ii].m_uniforms.m_handle = sprite;
+			m_emitter[ii].update();
 		}
 
 		imguiCreate();
@@ -292,7 +295,7 @@ public:
 		m_timeOffset = bx::getHPCounter();
 	}
 
-	virtual int shutdown() BX_OVERRIDE
+	virtual int shutdown() override
 	{
 		for (uint32_t ii = 0; ii < BX_COUNTOF(m_emitter); ++ii)
 		{
@@ -313,7 +316,7 @@ public:
 		return 0;
 	}
 
-	bool update() BX_OVERRIDE
+	bool update() override
 	{
 		if (!entry::processEvents(m_width, m_height, m_debug, m_reset, &m_mouseState) )
 		{
